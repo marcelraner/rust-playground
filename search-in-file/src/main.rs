@@ -1,4 +1,6 @@
 use std::env;
+use std::fs;
+use regex::Regex;
 
 #[derive(Debug)]
 struct Arguments {
@@ -29,5 +31,31 @@ fn parse_args() -> Arguments {
 
 fn main() {
     let arguments = parse_args();
-    println!("{:?}", arguments);
+    // println!("{:?}", arguments);
+
+    let data = match fs::read_to_string(&arguments.target_filename) {
+        Ok(value) => value,
+        Err(e) => {
+            print_usage();
+            eprintln!("Error: Failed ro read from file '{}': {:?}", arguments.target_filename, e);
+            std::process::exit(1);
+        }
+    };
+
+    // println!("{:?}", data);
+
+    let regex = match Regex::new(&arguments.search_pattern) {
+        Ok(value) => value,
+        Err(e) => {
+            print_usage();
+            eprintln!("Error: Failed to compile pattern '{}': {:?}", arguments.search_pattern, e);
+            std::process::exit(1);
+        }
+    };
+
+    for (index, line) in data.lines().enumerate() {
+        for mat in regex.find_iter(&line) {
+            println!("Ln {}, Col {}", index + 1, mat.start() + 1);
+        }
+    }
 }
